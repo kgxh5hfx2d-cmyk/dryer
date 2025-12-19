@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Dryer Control Pro v6</title>
+    <style>
+        :root { --bg: #0d1117; --card: #161b22; --accent: #58a6ff; --text: #c9d1d9; --success: #238636; --warning: #d29922; --danger: #da3633; --info: #1f6feb; }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); color: var(--text); padding: 15px; margin: 0; }
+        .hmi-container { background: var(--card); border: 1px solid #30363d; border-radius: 12px; width: 100%; max-width: 400px; padding: 15px; box-sizing: border-box; margin: auto; }
+        .header { display: flex; justify-content: space-between; border-bottom: 1px solid #30363d; padding-bottom: 10px; margin-bottom: 15px; color: var(--accent); font-weight: bold; font-family: monospace; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .input-box { background: #010409; border: 1px solid #30363d; padding: 10px; border-radius: 8px; }
+        label { font-size: 10px; color: #8b949e; text-transform: uppercase; display: block; margin-bottom: 4px; }
+        input { width: 100%; background: transparent; border: none; color: #fff; font-size: 18px; outline: none; font-family: monospace; }
+        .monitor-box { background: #0d1117; border-left: 4px solid var(--success); padding: 12px; border-radius: 6px; margin-bottom: 10px; }
+        .data-val { font-size: 24px; font-weight: bold; color: #ffffff; font-family: monospace; }
+        .status-msg { padding: 12px; border-radius: 6px; text-align: center; font-weight: bold; font-size: 13px; margin-bottom: 15px; color: white; border: 1px solid transparent; }
+        button { width: 100%; padding: 15px; border-radius: 8px; border: none; font-weight: bold; font-size: 14px; margin-top: 8px; -webkit-appearance: none; cursor: pointer; }
+        .btn-log { background: var(--success); color: white; }
+        .btn-share { background: #007aff; color: white; }
+        .log-list { background: #010409; border-radius: 8px; padding: 10px; font-size: 11px; margin-top: 15px; max-height: 120px; overflow-y: auto; }
+        .log-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid #222; }
+        /* Footer Style */
+        .footer-credit { text-align: center; font-size: 10px; color: #8b949e; margin-top: 20px; font-family: monospace; opacity: 0.7; }
+    </style>
+</head>
+<body>
+
+<div class="hmi-container">
+    <div class="header"><span>DRYER-LOGIC-V6</span><span id="clock">00:00</span></div>
+
+    <div class="grid">
+        <div class="input-box" style="border-color: var(--accent);">
+            <label>Dichte (kg/m³)</label>
+            <input type="number" id="rho_input" value="1248" oninput="calculateFromDensity()">
+        </div>
+        <div class="input-box">
+            <label>Dichte-Faktor</label>
+            <input type="number" id="rho_factor" value="4.5" step="0.1" oninput="calculateFromDensity()">
+        </div>
+        <div class="input-box">
+            <label>Zulauf l/h</label>
+            <input type="number" id="vol" value="9000" oninput="calculate()">
+        </div>
+        <div class="input-box">
+            <label>Ber. TS %</label>
+            <input type="number" id="ts" value="55.1" oninput="calculate()">
+        </div>
+        <div class="input-box">
+            <label>Zuluft °C</label>
+            <input type="number" id="t_zu" value="194" oninput="calculate()">
+        </div>
+        <div class="input-box">
+            <label>Abluft °C</label>
+            <input type="number" id="t_ab" value="88" oninput="calculate()">
+        </div>
+    </div>
+
+    <div id="status" class="status-msg">SYSTEM STABIL</div>
+
+    <div class="monitor-box" style="border-left-color: var(--info);">
+        <label>Konzentrat Gehalt (aus Dichte)</label>
+        <div class="data-val" id="res_ts_display" style="color: var(--accent);">-- % TS</div>
+    </div>
+
+    <div class="monitor-box">
+        <label>Trockenmasse absolut</label>
+        <div class="data-val" id="res_ts_abs" style="color: #ff9f43;">-- kg/h</div>
+    </div>
+
+    <div class="monitor-box">
+        <label>Pulverproduktion (97% TS)</label>
+        <div class="data-val" id="res_p">--</div>
+    </div>
+
+    <div class="monitor-box" style="border-left-color: var(--accent);">
+        <label>Wasserverdampfung</label>
+        <div class="data-val" id="res_w" style="color: var(--accent);">--</div>
+    </div>
+
+    <div style="font-size: 11px; text-align: center; color: #8b949e; margin-bottom: 10px;" id="res_eff">--</div>
+
+    <button class="btn-log" onclick="logData()">💾 DATEN SPEICHERN</button>
+    <button class="btn-share" onclick="shareReport()">📤 PER WHATSAPP TEILEN</button>
+
+    <div class="log-list" id="logbook"><div style="text-align:center; color:#555">Keine Einträge</div></div>
+    
+    <div class="footer-credit">Geschrieben von E. Meisner</div>
+</div>
+
+<script>
+    function calculateFromDensity() {
+        const dens = parseFloat(document.getElementById('rho_input').value) || 1000;
+        const factor = parseFloat(document.getElementById('rho_factor').value) || 4.5;
+        let calculatedTS = (dens - 1000) / factor;
+        if(calculatedTS < 0) calculatedTS = 0;
+        document.getElementById('ts').value = calculatedTS.toFixed(1);
+        calculate();
+    }
+
+    function calculate() {
+        const tZu = parseFloat(document.getElementById('t_zu').value) || 0;
+        const tAb = parseFloat(document.getElementById('t_ab').value) || 0;
+        const vol = parseFloat(document.getElementById('vol').value) || 0;
+        const tsZ = (parseFloat(document.getElementById('ts').value) || 0) / 100;
+        const densInput = parseFloat(document.getElementById('rho_input').value) || 1000;
+        
+        const rho = densInput / 1000; 
+        const tsP = 0.97;
+
+        const mZ = vol * rho;                
+        const mTS_abs = mZ * tsZ;            
+        const mP = mTS_abs / tsP;            
+        const mW = mZ - mP;                  
+        
+        document.getElementById('res_ts_display').innerText = (tsZ * 100).toFixed(1) + " % TS";
+        document.getElementById('res_ts_abs').innerText = Math.round(mTS_abs).toLocaleString('de-DE') + " kg/h";
+        document.getElementById('res_p').innerText = Math.round(mP).toLocaleString('de-DE') + " kg/h";
+        document.getElementById('res_w').innerText = Math.round(mW).toLocaleString('de-DE') + " kg/h";
+        
+        const costT = mP > 0 ? ((mW * 1.2 * 0.08) / (mP / 1000)) : 0;
+        document.getElementById('res_eff').innerText = "Kosten: " + costT.toFixed(2) + " €/t | ΔT: " + (tZu - tAb) + " K";
+
+        const st = document.getElementById('status');
+        const targetAb = 88 - (tZu - 194) * 0.5;
+
+        if (tAb > targetAb + 2) {
+            st.innerText = "HINWEIS: ABLUFT ZU HOCH";
+            st.style.backgroundColor = "#da3633";
+        } else if (tAb < targetAb - 5) {
+            st.innerText = "HINWEIS: ABLUFT TIEF";
+            st.style.backgroundColor = "#d29922";
+        } else {
+            st.innerText = "PROZESS OPTIMAL";
+            st.style.backgroundColor = "#238636";
+        }
+    }
+
+    function logData() {
+        const ts = document.getElementById('ts').value;
+        const p = document.getElementById('res_p').innerText;
+        const time = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+        const lb = document.getElementById('logbook');
+        if(lb.innerHTML.includes("Keine Einträge")) lb.innerHTML = "";
+        lb.innerHTML = '<div class="log-item"><span>' + time + ' (' + ts + '%)</span><span>P: ' + p + '</span></div>' + lb.innerHTML;
+    }
+
+    function shareReport() {
+        const ts = document.getElementById('ts').value;
+        const p = document.getElementById('res_p').innerText;
+        const w = document.getElementById('res_w').innerText;
+        const msg = "*Trockner-Report*\nGehalt: " + ts + "% TS\nPulver: " + p + "\nWasser: " + w;
+        window.location.href = "whatsapp://send?text=" + encodeURIComponent(msg);
+    }
+
+    function updateClock() {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+
+    window.onload = function() {
+        calculateFromDensity();
+        setInterval(updateClock, 1000);
+    };
+</script>
+</body>
+</html>
