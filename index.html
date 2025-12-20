@@ -1,0 +1,440 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Dryer Control iOS 26</title>
+
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dryer Pro">
+
+    <style>
+        :root {
+            --bg: #f2f2f7;
+            --card: rgba(255, 255, 255, 0.8);
+            --text: #000000;
+            --sub-text: #8e8e93;
+            --input-bg: rgba(120, 120, 128, 0.12);
+            --accent: #007aff;
+            --green: #34c759;
+            --orange: #ff9500;
+            --red: #ff3b30;
+            --blur: blur(20px);
+        }
+
+        [data-theme="dark"] {
+            --bg: #000000;
+            --card: rgba(28, 28, 30, 0.8);
+            --text: #ffffff;
+            --sub-text: #a8a8ad;
+            --input-bg: rgba(255, 255, 255, 0.15);
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: env(safe-area-inset-top) 15px;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+            transition: background-color 0.3s ease;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            padding-top: 20px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -1px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 8px;
+        }
+
+        .icon-btn {
+            background: var(--input-bg);
+            border: none;
+            padding: 8px 12px;
+            border-radius: 20px;
+            color: var(--text);
+            font-size: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            backdrop-filter: var(--blur);
+        }
+
+        .card {
+            background: var(--card);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            border-radius: 22px;
+            padding: 18px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--sub-text);
+            text-transform: uppercase;
+            margin: 5px 0 8px 5px;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .input-group {
+            background: var(--input-bg);
+            padding: 10px 12px;
+            border-radius: 14px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--sub-text);
+            margin-bottom: 2px;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 19px;
+            font-weight: 600;
+            outline: none;
+            padding: 0;
+        }
+
+        .input-group.highlight {
+            grid-column: span 2;
+            border: 1.5px solid var(--accent);
+        }
+
+        .status-pill {
+            padding: 14px;
+            border-radius: 16px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+
+        .ready { background: rgba(52, 199, 89, 0.2); color: var(--green); }
+        .warn { background: rgba(255, 149, 0, 0.2); color: var(--orange); }
+        .alarm { background: rgba(255, 59, 48, 0.2); color: var(--red); animation: pulse 1.5s infinite; }
+
+        @keyframes pulse { 0% {opacity: 1;} 50% {opacity: 0.7;} 100% {opacity: 1;} }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 0.5px solid rgba(142, 142, 147, 0.2);
+        }
+        .row:last-child { border: none; }
+        .val { font-weight: 700; font-size: 18px; }
+
+        /* MODAL COMMON */
+        #calc-modal, #energy-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.3);
+            backdrop-filter: blur(5px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--card);
+            width: 280px;
+            border-radius: 24px;
+            padding: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.2);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        #calc-display {
+            width: 100%;
+            height: 45px;
+            background: var(--input-bg);
+            border-radius: 12px;
+            border: none;
+            color: var(--text);
+            text-align: right;
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            padding: 0 10px;
+            outline: none;
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+        }
+
+        .calc-btn {
+            height: 45px;
+            border-radius: 12px;
+            border: none;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--input-bg);
+            color: var(--text);
+        }
+
+        .calc-btn:active { background: var(--sub-text); color: white; }
+        .op { background: var(--orange); color: white; }
+        .fn { background: rgba(142, 142, 147, 0.3); }
+
+        .footer { text-align: center; font-size: 11px; color: var(--sub-text); padding: 20px 0; }
+    </style>
+</head>
+<body data-theme="light">
+
+<div class="app-container">
+    <div class="top-bar">
+        <div class="header">
+            <h1 id="clock">00:00</h1>
+            <div style="font-size: 14px; font-weight: 600; color: var(--accent);">DRYER PRO v26</div>
+        </div>
+        <div class="button-group">
+            <button class="icon-btn" onclick="openModal('calc-modal')">🔢</button>
+            <button class="icon-btn" onclick="toggleTheme()">🌓</button>
+        </div>
+    </div>
+
+    <div class="section-title">Parameter</div>
+    <div class="card">
+        <div class="input-grid">
+            <div class="input-group">
+                <label>Dichte (kg/m³)</label>
+                <input type="number" id="rho_input" value="1248" oninput="calculateFromDensity()">
+            </div>
+            <div class="input-group">
+                <label>Faktor</label>
+                <input type="number" id="rho_factor" value="4.5" step="0.1" oninput="calculateFromDensity()">
+            </div>
+            <div class="input-group">
+                <label>Zulauf l/h</label>
+                <input type="number" id="vol" value="9000" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>H2O Pulver %</label>
+                <input type="number" id="p_water" value="1.0" step="0.1" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Zuluft °C</label>
+                <input type="number" id="t_zu" value="194" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Abluft °C</label>
+                <input type="number" id="t_ab" value="88" oninput="calculate()">
+            </div>
+            <div class="input-group highlight">
+                <label>Berechneter TS %</label>
+                <input type="number" id="ts" value="55.1" disabled>
+            </div>
+        </div>
+    </div>
+
+    <div id="status" class="status-pill ready">PROZESS OPTIMAL</div>
+
+    <div class="section-title">Analyse</div>
+    <div class="card">
+        <div class="row">
+            <span style="color: var(--sub-text)">Feststoff Zulauf</span>
+            <span class="val" id="res_ts_abs" style="color: var(--orange)">--</span>
+        </div>
+        <div class="row">
+            <span id="p_label" style="color: var(--sub-text)">Pulvermenge</span>
+            <span class="val" id="res_p">--</span>
+        </div>
+        <div class="row">
+            <span style="color: var(--sub-text)">Verdampfung</span>
+            <span class="val" id="res_w" style="color: var(--accent)">--</span>
+        </div>
+        <div class="row" onclick="openModal('energy-modal')" style="cursor: pointer;">
+            <span style="color: var(--accent); font-weight: 600;">⚡ Energie Setup ></span>
+            <span class="val" id="res_eff" style="font-size: 15px;">--</span>
+        </div>
+    </div>
+
+    <div class="footer">E. Meisner Engineering &bull; iOS 26 Design</div>
+</div>
+
+<div id="calc-modal" onclick="closeModal('calc-modal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <input type="text" id="calc-display" readonly value="0">
+        <div class="calc-grid">
+            <button class="calc-btn fn" onclick="clearCalc()">AC</button>
+            <button class="calc-btn fn" onclick="backspace()">C</button>
+            <button class="calc-btn fn" onclick="appendCalc('/')">÷</button>
+            <button class="calc-btn op" onclick="appendCalc('*')">×</button>
+            <button class="calc-btn" onclick="appendCalc('7')">7</button>
+            <button class="calc-btn" onclick="appendCalc('8')">8</button>
+            <button class="calc-btn" onclick="appendCalc('9')">9</button>
+            <button class="calc-btn op" onclick="appendCalc('-')">−</button>
+            <button class="calc-btn" onclick="appendCalc('4')">4</button>
+            <button class="calc-btn" onclick="appendCalc('5')">5</button>
+            <button class="calc-btn" onclick="appendCalc('6')">6</button>
+            <button class="calc-btn op" onclick="appendCalc('+')">+</button>
+            <button class="calc-btn" onclick="appendCalc('1')">1</button>
+            <button class="calc-btn" onclick="appendCalc('2')">2</button>
+            <button class="calc-btn" onclick="appendCalc('3')">3</button>
+            <button class="calc-btn op" onclick="execCalc()">=</button>
+            <button class="calc-btn" style="grid-column: span 2;" onclick="appendCalc('0')">0</button>
+            <button class="calc-btn" onclick="appendCalc('.')">,</button>
+            <button class="calc-btn op" style="background: var(--green);" onclick="closeModal('calc-modal')">OK</button>
+        </div>
+    </div>
+</div>
+
+<div id="energy-modal" onclick="closeModal('energy-modal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 style="margin: 0 0 12px 0; font-size: 16px;">Energiepreise</h3>
+        <div class="input-group" style="margin-bottom: 8px;">
+            <label>Gaspreis (€/kWh)</label>
+            <input type="number" id="p_gas" value="0.08" step="0.01" oninput="calculate()">
+        </div>
+        <div class="input-group" style="margin-bottom: 8px;">
+            <label>Strompreis (€/kWh)</label>
+            <input type="number" id="p_elec" value="0.32" step="0.01" oninput="calculate()">
+        </div>
+        <div class="input-group" style="margin-bottom: 12px;">
+            <label>Wirkungsgrad Faktor</label>
+            <input type="number" id="eff_fact" value="1.2" step="0.1" oninput="calculate()">
+        </div>
+        <button class="calc-btn op" style="background: var(--green); width: 100%;" onclick="closeModal('energy-modal')">Fertig</button>
+    </div>
+</div>
+
+<script>
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.body.setAttribute('data-theme', savedTheme);
+
+    function toggleTheme() {
+        const body = document.body;
+        const next = body.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+        body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    const calcDisplay = document.getElementById('calc-display');
+    function appendCalc(val) { 
+        if(calcDisplay.value === '0' && val !== '.') calcDisplay.value = val;
+        else calcDisplay.value += val;
+    }
+    function clearCalc() { calcDisplay.value = '0'; }
+    function backspace() { calcDisplay.value = calcDisplay.value.slice(0, -1) || '0'; }
+    function execCalc() {
+        try { 
+            let res = eval(calcDisplay.value);
+            calcDisplay.value = Number.isInteger(res) ? res : res.toFixed(2);
+        } catch { calcDisplay.value = 'Error'; }
+    }
+
+    function calculateFromDensity() {
+        const dens = parseFloat(document.getElementById('rho_input').value) || 1000;
+        const factor = parseFloat(document.getElementById('rho_factor').value) || 4.5;
+        let calculatedTS = (dens - 1000) / factor;
+        if(calculatedTS < 0) calculatedTS = 0;
+        document.getElementById('ts').value = calculatedTS.toFixed(1);
+        calculate();
+    }
+
+    function calculate() {
+        const tZu = parseFloat(document.getElementById('t_zu').value) || 0;
+        const tAb = parseFloat(document.getElementById('t_ab').value) || 0;
+        const vol = parseFloat(document.getElementById('vol').value) || 0;
+        const tsVal = parseFloat(document.getElementById('ts').value) || 0;
+        const densInput = parseFloat(document.getElementById('rho_input').value) || 1000;
+        const restWater = parseFloat(document.getElementById('p_water').value) || 0;
+        
+        // Energie-Parameter aus dem neuen Modal
+        const priceGas = parseFloat(document.getElementById('p_gas').value) || 0.08;
+        const priceElec = parseFloat(document.getElementById('p_elec').value) || 0.32;
+        const effFact = parseFloat(document.getElementById('eff_fact').value) || 1.2;
+
+        const rho = densInput / 1000; 
+        const tsZ = tsVal / 100;
+        const tsP = (100 - restWater) / 100;
+        const mZ = vol * rho;                
+        const mTS_abs = mZ * tsZ;   
+        const mP = mTS_abs / tsP;            
+        const mW = mZ - mP;                  
+        
+        document.getElementById('p_label').innerText = "Pulver (" + restWater.toFixed(1) + "% H2O)";
+        document.getElementById('res_ts_abs').innerText = Math.round(mTS_abs).toLocaleString('de-DE') + " kg/h";
+        document.getElementById('res_p').innerText = Math.round(mP).toLocaleString('de-DE') + " kg/h";
+        document.getElementById('res_w').innerText = Math.round(mW).toLocaleString('de-DE') + " kg/h";
+        
+        if (mP > 1) {
+            const costT = ((mW * effFact * priceGas) + (mW * 0.12 * priceElec)) / (mP / 1000);
+            document.getElementById('res_eff').innerText = costT.toFixed(2) + " €/t | ΔT " + (tZu - tAb) + "K";
+        }
+
+        const st = document.getElementById('status');
+        st.classList.remove('ready', 'warn', 'alarm');
+        if (densInput < 1050 && densInput > 900) {
+            st.innerText = "DICHTE KRITISCH";
+            st.classList.add('alarm');
+            return;
+        }
+        const targetAb = 88 - (tZu - 194) * 0.5;
+        if (tAb > targetAb + 2) {
+            st.innerText = "ABLUFT ZU HOCH"; st.classList.add('alarm');
+        } else if (tAb < targetAb - 5) {
+            st.innerText = "ABLUFT ZU NIEDRIG"; st.classList.add('warn');
+        } else {
+            st.innerText = "PROZESS OPTIMAL"; st.classList.add('ready');
+        }
+    }
+
+    function updateClock() {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+
+    window.onload = function() {
+        calculateFromDensity();
+        setInterval(updateClock, 1000);
+    };
+</script>
+</body>
+</html>
