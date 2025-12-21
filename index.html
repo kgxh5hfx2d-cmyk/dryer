@@ -1,0 +1,621 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Dryer Control MSNR</title>
+
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Dryer Pro">
+
+    <style>
+        :root {
+            --bg: #f2f2f7;
+            --card: rgba(255, 255, 255, 0.85);
+            --text: #000000;
+            --sub-text: #8e8e93;
+            --input-bg: rgba(120, 120, 128, 0.12);
+            --accent: #007aff;
+            --green: #34c759;
+            --orange: #ff9500;
+            --red: #ff3b30;
+            --blur: blur(25px);
+            --cc-btn-bg: rgba(255, 255, 255, 0.9);
+            --switch-bg: #e3e3e3;
+        }
+
+        [data-theme="dark"] {
+            --bg: #000000;
+            --card: rgba(28, 28, 30, 0.85);
+            --text: #ffffff;
+            --sub-text: #a8a8ad;
+            --input-bg: rgba(255, 255, 255, 0.12);
+            --cc-btn-bg: rgba(50, 50, 52, 0.9);
+            --switch-bg: #39393d;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, system-ui, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: env(safe-area-inset-top) 15px;
+            display: flex;
+            justify-content: center;
+            overflow-x: hidden;
+            transition: background-color 0.4s ease;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 400px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-top: 25px;
+            margin-bottom: 5px;
+        }
+
+        .header h1 {
+            font-size: 34px;
+            font-weight: 800;
+            margin: 0;
+            letter-spacing: -1px;
+        }
+
+        .button-group {
+            display: flex;
+            background: var(--cc-btn-bg);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            padding: 5px;
+            border-radius: 20px;
+            gap: 5px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        }
+
+        .cc-action-btn {
+            width: 44px;
+            height: 44px;
+            background: var(--input-bg);
+            border-radius: 15px;
+            border: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .cc-action-btn:active {
+            transform: scale(0.9);
+            background: rgba(120, 120, 128, 0.3);
+        }
+
+        .calc-icon {
+            width: 20px;
+            height: 20px;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 2px;
+        }
+        .calc-icon div {
+            border: 1.2px solid var(--text);
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 8px;
+            font-weight: 800;
+        }
+
+        .rule3-icon { font-size: 19px; font-weight: 800; color: var(--accent); }
+
+        .theme-switch-container {
+            width: 44px;
+            height: 44px;
+            background: var(--input-bg);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .switch {
+            position: relative;
+            width: 34px;
+            height: 20px;
+        }
+
+        .switch input { opacity: 0; width: 0; height: 0; }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background-color: var(--switch-bg);
+            transition: .3s;
+            border-radius: 20px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 16px; width: 16px;
+            left: 2px; bottom: 2px;
+            background-color: white;
+            transition: .3s cubic-bezier(0.4, 0, 0.2, 1);
+            border-radius: 50%;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        }
+
+        input:checked + .slider { background-color: var(--accent); }
+        input:checked + .slider:before { transform: translateX(14px); }
+
+        .card {
+            background: var(--card);
+            backdrop-filter: var(--blur);
+            -webkit-backdrop-filter: var(--blur);
+            border-radius: 22px;
+            padding: 18px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
+
+        .section-title {
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--sub-text);
+            text-transform: uppercase;
+            margin: 5px 0 8px 5px;
+        }
+
+        .input-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .input-group {
+            background: var(--input-bg);
+            padding: 10px 12px;
+            border-radius: 14px;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 11px;
+            font-weight: 500;
+            color: var(--sub-text);
+            margin-bottom: 2px;
+        }
+
+        .input-group input {
+            width: 100%;
+            background: transparent;
+            border: none;
+            color: var(--text);
+            font-size: 19px;
+            font-weight: 600;
+            outline: none;
+            padding: 0;
+        }
+
+        .input-group.highlight {
+            grid-column: span 2;
+            border: 1.5px solid var(--accent);
+        }
+
+        .status-pill {
+            padding: 14px;
+            border-radius: 16px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+
+        .ready { background: rgba(52, 199, 89, 0.2); color: var(--green); }
+        .warn { background: rgba(255, 149, 0, 0.2); color: var(--orange); }
+        .alarm { background: rgba(255, 59, 48, 0.2); color: var(--red); animation: pulse 1.5s infinite; }
+
+        @keyframes pulse { 0% {opacity: 1;} 50% {opacity: 0.7;} 100% {opacity: 1;} }
+
+        .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 12px 0;
+            border-bottom: 0.5px solid rgba(142, 142, 147, 0.2);
+        }
+        .row:last-child { border: none; }
+        .val { font-weight: 700; font-size: 18px; }
+
+        /* --- MODALS --- */
+        #calc-modal, #energy-modal, #rule3-modal, #info-modal {
+            display: none;
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.4);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .modal-content {
+            background: var(--card);
+            width: 90%;
+            max-width: 360px;
+            max-height: 80vh;
+            overflow-y: auto;
+            border-radius: 28px;
+            padding: 24px;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.3);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        /* Info Text Styling */
+        .info-section { margin-bottom: 20px; }
+        .info-section h4 { color: var(--accent); margin: 0 0 8px 0; font-size: 16px; border-bottom: 1px solid var(--input-bg); padding-bottom: 4px; }
+        .info-section p { font-size: 13px; line-height: 1.5; margin: 5px 0; color: var(--text); }
+        .formula { background: var(--input-bg); padding: 8px; border-radius: 8px; font-family: monospace; font-size: 12px; margin: 8px 0; }
+
+        #calc-display {
+            width: 100%;
+            height: 60px;
+            background: var(--input-bg);
+            border-radius: 15px;
+            border: none;
+            color: var(--text);
+            text-align: right;
+            font-size: 32px;
+            font-weight: 600;
+            margin-bottom: 15px;
+            padding: 0 15px;
+            outline: none;
+        }
+
+        .calc-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 10px;
+        }
+
+        .calc-btn {
+            height: 54px;
+            border-radius: 14px;
+            border: none;
+            font-size: 20px;
+            font-weight: 600;
+            cursor: pointer;
+            background: var(--input-bg);
+            color: var(--text);
+            transition: background 0.1s;
+        }
+
+        .calc-btn:active { background: var(--sub-text); color: white; }
+        .op { background: var(--orange); color: white; }
+        .fn { background: rgba(142, 142, 147, 0.3); }
+
+        .rule3-row {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+        .rule3-arrow { font-size: 20px; color: var(--sub-text); }
+
+        .footer { text-align: center; padding: 40px 0; cursor: pointer; }
+        .footer .brand { 
+            font-size: 16px; 
+            font-weight: 800; 
+            color: var(--accent); 
+            letter-spacing: 2px; 
+            text-transform: uppercase;
+            padding: 10px 20px;
+            background: var(--input-bg);
+            border-radius: 30px;
+            transition: 0.3s;
+        }
+        .footer:active .brand { transform: scale(0.95); opacity: 0.7; }
+    </style>
+</head>
+<body data-theme="light">
+
+<div class="app-container">
+    <div class="top-bar">
+        <div class="header">
+            <h1 id="clock">00:00</h1>
+            <div style="font-size: 14px; font-weight: 700; color: var(--accent); opacity: 0.9;">DRYER PRO v26</div>
+        </div>
+        <div class="button-group">
+            <button class="cc-action-btn" onclick="openModal('rule3-modal')">
+                <div class="rule3-icon">¾</div>
+            </button>
+            <button class="cc-action-btn" onclick="openModal('calc-modal')">
+                <div class="calc-icon">
+                    <div>+</div>
+                    <div>-</div>
+                    <div>×</div>
+                    <div style="background: var(--orange); border:none; color: white;">=</div>
+                </div>
+            </button>
+            <div class="theme-switch-container">
+                <label class="switch">
+                    <input type="checkbox" id="theme-toggle" onclick="toggleTheme()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="section-title">Parameter</div>
+    <div class="card">
+        <div class="input-grid">
+            <div class="input-group">
+                <label>Dichte (kg/m³)</label>
+                <input type="number" id="rho_input" value="1248" oninput="calculateFromDensity()">
+            </div>
+            <div class="input-group">
+                <label>Faktor</label>
+                <input type="number" id="rho_factor" value="4.5" step="0.1" oninput="calculateFromDensity()">
+            </div>
+            <div class="input-group">
+                <label>Zulauf l/h</label>
+                <input type="number" id="vol" value="9000" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>H2O Pulver %</label>
+                <input type="number" id="p_water" value="1.0" step="0.1" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Zuluft °C</label>
+                <input type="number" id="t_zu" value="194" oninput="calculate()">
+            </div>
+            <div class="input-group">
+                <label>Abluft °C</label>
+                <input type="number" id="t_ab" value="88" oninput="calculate()">
+            </div>
+            <div class="input-group highlight">
+                <label>Berechneter TS %</label>
+                <input type="number" id="ts" value="55.1" disabled>
+            </div>
+        </div>
+    </div>
+
+    <div id="status" class="status-pill ready">PROZESS OPTIMAL</div>
+
+    <div class="section-title">Analyse</div>
+    <div class="card">
+        <div class="row">
+            <span style="color: var(--sub-text)">Feststoff Zulauf</span>
+            <span class="val" id="res_ts_abs" style="color: var(--orange)">--</span>
+        </div>
+        <div class="row">
+            <span id="p_label" style="color: var(--sub-text)">Pulvermenge</span>
+            <span class="val" id="res_p">--</span>
+        </div>
+        <div class="row">
+            <span style="color: var(--sub-text)">Verdampfung</span>
+            <span class="val" id="res_w" style="color: var(--accent)">--</span>
+        </div>
+        <div class="row" onclick="openModal('energy-modal')" style="cursor: pointer;">
+            <span style="color: var(--accent); font-weight: 600;">⚡ Energie Setup ></span>
+            <span class="val" id="res_eff" style="font-size: 15px;">--</span>
+        </div>
+    </div>
+
+    <div class="footer" onclick="openModal('info-modal')">
+        <span class="brand">MSNR DESIGN</span>
+    </div>
+</div>
+
+<div id="info-modal" onclick="closeModal('info-modal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 style="margin: 0 0 20px 0; text-align: center;">Prozess Dokumentation</h3>
+        
+        <div class="info-section">
+            <h4>1. TS-Berechnung & Faktor</h4>
+            <p>Die Trockensubstanz (TS) wird aus der Dichte abgeleitet:</p>
+            <div class="formula">TS % = (Dichte - 1000) / Faktor</div>
+            <p><b>Faktoren-Guide:</b><br>
+            • Magermilch: ~4.5 - 4.8<br>
+            • Molke: ~4.2 - 4.4<br>
+            • Fettreiche Konzentrate: ~5.0+</p>
+        </div>
+
+        <div class="info-section">
+            <h4>2. Energiekosten (K)</h4>
+            <p>Berechnung der Kosten pro Tonne fertiges Pulver:</p>
+            <div class="formula">K = ((H2O-Menge * Gaspreis * Wirkungsgrad) + (H2O-Menge * 0.12 * Strompreis)) / (Pulvermenge / 1000)</div>
+            <p>Der Wirkungsgrad (Standard 1.2) berücksichtigt Verluste der Anlage.</p>
+        </div>
+
+        <div class="info-section">
+            <h4>3. Konzentrat-Verhalten</h4>
+            <p><b>Höhere Dichte:</b> Erhöht die Viskosität. Die Zerstäubung wird grober, die Ablufttemperatur muss ggf. leicht steigen, um Klebeeffekte zu vermeiden.</p>
+            <p><b>Höhere Zuluft:</b> Steigert die Kapazität, erhöht aber das Risiko von verbranntem Pulver ("Black Specks").</p>
+        </div>
+
+        <button class="calc-btn op" style="background: var(--accent); width: 100%; margin-top: 10px;" onclick="closeModal('info-modal')">Schließen</button>
+    </div>
+</div>
+
+<div id="calc-modal" onclick="closeModal('calc-modal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <input type="text" id="calc-display" readonly value="0">
+        <div class="calc-grid">
+            <button class="calc-btn fn" onclick="clearCalc()">AC</button>
+            <button class="calc-btn fn" onclick="backspace()">C</button>
+            <button class="calc-btn fn" onclick="appendCalc('.')">,</button>
+            <button class="calc-btn op" onclick="appendCalc('/')">÷</button>
+            <button class="calc-btn" onclick="appendCalc('7')">7</button>
+            <button class="calc-btn" onclick="appendCalc('8')">8</button>
+            <button class="calc-btn" onclick="appendCalc('9')">9</button>
+            <button class="calc-btn op" onclick="appendCalc('*')">×</button>
+            <button class="calc-btn" onclick="appendCalc('4')">4</button>
+            <button class="calc-btn" onclick="appendCalc('5')">5</button>
+            <button class="calc-btn" onclick="appendCalc('6')">6</button>
+            <button class="calc-btn op" onclick="appendCalc('-')">−</button>
+            <button class="calc-btn" onclick="appendCalc('1')">1</button>
+            <button class="calc-btn" onclick="appendCalc('2')">2</button>
+            <button class="calc-btn" onclick="appendCalc('3')">3</button>
+            <button class="calc-btn op" onclick="appendCalc('+')">+</button>
+            <button class="calc-btn" style="grid-column: span 2;" onclick="appendCalc('0')">0</button>
+            <button class="calc-btn op" onclick="execCalc()">=</button>
+            <button class="calc-btn op" style="background: var(--green);" onclick="closeModal('calc-modal')">OK</button>
+        </div>
+    </div>
+</div>
+
+<div id="rule3-modal" onclick="closeModal('rule3-modal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 style="margin: 0 0 15px 0; font-size: 18px; text-align: center;">Dreisatz</h3>
+        <div class="rule3-row">
+            <div class="input-group"><label>Wert A</label><input type="number" id="r3_a" oninput="calcRule3()"></div>
+            <div class="rule3-arrow">➔</div>
+            <div class="input-group"><label>entspricht B</label><input type="number" id="r3_b" oninput="calcRule3()"></div>
+        </div>
+        <div class="rule3-row">
+            <div class="input-group" style="border: 1.5px solid var(--accent);"><label>Wert C</label><input type="number" id="r3_c" oninput="calcRule3()"></div>
+            <div class="rule3-arrow">➔</div>
+            <div class="input-group" style="background: rgba(52, 199, 89, 0.15);"><label>Ergebnis X</label><input type="number" id="r3_x" readonly style="color: var(--green);"></div>
+        </div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px;">
+            <button class="calc-btn fn" onclick="clearRule3()">Reset</button>
+            <button class="calc-btn op" style="background: var(--green);" onclick="closeModal('rule3-modal')">OK</button>
+        </div>
+    </div>
+</div>
+
+<div id="energy-modal" onclick="closeModal('energy-modal')">
+    <div class="modal-content" onclick="event.stopPropagation()">
+        <h3 style="margin: 0 0 12px 0; font-size: 16px;">Energiepreise</h3>
+        <div class="input-group" style="margin-bottom: 8px;"><label>Gaspreis (€/kWh)</label><input type="number" id="p_gas" value="0.08" step="0.01" oninput="calculate()"></div>
+        <div class="input-group" style="margin-bottom: 8px;"><label>Strompreis (€/kWh)</label><input type="number" id="p_elec" value="0.32" step="0.01" oninput="calculate()"></div>
+        <div class="input-group" style="margin-bottom: 12px;"><label>Wirkungsgrad Faktor</label><input type="number" id="eff_fact" value="1.2" step="0.1" oninput="calculate()"></div>
+        <button class="calc-btn op" style="background: var(--green); width: 100%;" onclick="closeModal('energy-modal')">Fertig</button>
+    </div>
+</div>
+
+<script>
+    const savedTheme = localStorage.getItem('theme') || 'light';
+    document.body.setAttribute('data-theme', savedTheme);
+    document.getElementById('theme-toggle').checked = (savedTheme === 'dark');
+
+    function toggleTheme() {
+        const isDark = document.getElementById('theme-toggle').checked;
+        const next = isDark ? 'dark' : 'light';
+        document.body.setAttribute('data-theme', next);
+        localStorage.setItem('theme', next);
+    }
+
+    function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    const calcDisplay = document.getElementById('calc-display');
+    function appendCalc(val) { 
+        if(calcDisplay.value === '0' && val !== '.') calcDisplay.value = val;
+        else calcDisplay.value += val;
+    }
+    function clearCalc() { calcDisplay.value = '0'; }
+    function backspace() { calcDisplay.value = calcDisplay.value.slice(0, -1) || '0'; }
+    function execCalc() {
+        try { 
+            let res = eval(calcDisplay.value);
+            calcDisplay.value = Number.isInteger(res) ? res : res.toFixed(2);
+        } catch { calcDisplay.value = 'Error'; }
+    }
+
+    function calcRule3() {
+        const a = parseFloat(document.getElementById('r3_a').value);
+        const b = parseFloat(document.getElementById('r3_b').value);
+        const c = parseFloat(document.getElementById('r3_c').value);
+        const xField = document.getElementById('r3_x');
+        if (a && b && c && a !== 0) {
+            const res = (b * c) / a;
+            xField.value = Number.isInteger(res) ? res : res.toFixed(2);
+        } else { xField.value = ""; }
+    }
+    function clearRule3() {
+        document.getElementById('r3_a').value = ""; document.getElementById('r3_b').value = "";
+        document.getElementById('r3_c').value = ""; document.getElementById('r3_x').value = "";
+    }
+
+    function calculateFromDensity() {
+        const dens = parseFloat(document.getElementById('rho_input').value) || 1000;
+        const factor = parseFloat(document.getElementById('rho_factor').value) || 4.5;
+        let calculatedTS = (dens - 1000) / factor;
+        if(calculatedTS < 0) calculatedTS = 0;
+        document.getElementById('ts').value = calculatedTS.toFixed(1);
+        calculate();
+    }
+
+    function calculate() {
+        const tZu = parseFloat(document.getElementById('t_zu').value) || 0;
+        const tAb = parseFloat(document.getElementById('t_ab').value) || 0;
+        const vol = parseFloat(document.getElementById('vol').value) || 0;
+        const tsVal = parseFloat(document.getElementById('ts').value) || 0;
+        const densInput = parseFloat(document.getElementById('rho_input').value) || 1000;
+        const restWater = parseFloat(document.getElementById('p_water').value) || 0;
+        const priceGas = parseFloat(document.getElementById('p_gas').value) || 0.08;
+        const priceElec = parseFloat(document.getElementById('p_elec').value) || 0.32;
+        const effFact = parseFloat(document.getElementById('eff_fact').value) || 1.2;
+
+        const rho = densInput / 1000; 
+        const tsZ = tsVal / 100;
+        const tsP = (100 - restWater) / 100;
+        const mZ = vol * rho;                
+        const mTS_abs = mZ * tsZ;   
+        const mP = mTS_abs / tsP;            
+        const mW = mZ - mP;                  
+        
+        document.getElementById('p_label').innerText = "Pulver (" + restWater.toFixed(1) + "% H2O)";
+        document.getElementById('res_ts_abs').innerText = Math.round(mTS_abs).toLocaleString('de-DE') + " kg/h";
+        document.getElementById('res_p').innerText = Math.round(mP).toLocaleString('de-DE') + " kg/h";
+        document.getElementById('res_w').innerText = Math.round(mW).toLocaleString('de-DE') + " kg/h";
+        
+        if (mP > 1) {
+            const costT = ((mW * effFact * priceGas) + (mW * 0.12 * priceElec)) / (mP / 1000);
+            document.getElementById('res_eff').innerText = costT.toFixed(2) + " €/t | ΔT " + (tZu - tAb) + "K";
+        }
+
+        const st = document.getElementById('status');
+        st.classList.remove('ready', 'warn', 'alarm');
+        if (densInput < 1050 && densInput > 900) {
+            st.innerText = "DICHTE KRITISCH"; st.classList.add('alarm'); return;
+        }
+        const targetAb = 88 - (tZu - 194) * 0.5;
+        if (tAb > targetAb + 2) {
+            st.innerText = "ABLUFT ZU HOCH"; st.classList.add('alarm');
+        } else if (tAb < targetAb - 5) {
+            st.innerText = "ABLUFT ZU NIEDRIG"; st.classList.add('warn');
+        } else {
+            st.innerText = "PROZESS OPTIMAL"; st.classList.add('ready');
+        }
+    }
+
+    function updateClock() {
+        document.getElementById('clock').innerText = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    }
+
+    window.onload = function() {
+        calculateFromDensity();
+        setInterval(updateClock, 1000);
+    };
+</script>
+</body>
+</html>
